@@ -47,36 +47,44 @@ def encode_timestamps(timestamps):
     solar = encode_solar_rotation(timestamps)
     return np.column_stack([hour, doy, solar])
 
+def _check_bounds(name, rec, indx, size, pred):
+    if indx < 0:
+        raise ValueError(f"{name}: index cannot be negative integer.")
+    if indx >= rec["data"].size - (size + pred):
+        raise ValueError(f"{name}: sliding window gone out of bounds.")
+
 def predict(rec, indx, size=64, pred=6):
-    if indx < size + pred:
-        raise ValueError(f"predict: not enough context window.")
+
+    indx_abs = indx + size + pred
+
+    _check_bounds("predict", rec, indx, size, pred)
 
     def inputs(i):
         timestamps = slice(rolling (
-            rec, "timestamp", indx - size - pred, size + pred
+            rec, "timestamp", indx_abs - size - pred, size + pred
         ), i, size)
         return format_predict_data (
             slice(rolling (
-                rec, "dst_nT", indx - size - pred, size + pred
+                rec, "dst_nT", indx_abs - size - pred, size + pred
             ), i, size),
             encode_timestamps(timestamps)
         )
     
     return np.array([ inputs(i) for i in range(0, pred) ])
 
-def training(rec, indx, size=64, pred=6):
-    if indx < size + pred:
-        raise ValueError(f"window_training: index < size + pred ({size + pred})")
-    if indx >= rec["data"].size + pred:
-        raise ValueError(f"window_training: index > rec.size + pred + 1 ({rec.size + pred + 1})")
+def training(rec, indx: int, size=64, pred=6):
+
+    indx_abs = indx + size + pred
+
+    _check_bounds("training", rec, indx, size + pred, pred)
 
     def truths():
-        timestamps = rolling(rec, "timestamp", indx + 1, pred)
+        timestamps = rolling(rec, "timestamp", indx_abs + 1, pred)
         return format_predict_data (
-            rolling(rec, "dst_nT", indx + 1, pred),
+            rolling(rec, "dst_nT", indx_abs + 1, pred),
             encode_timestamps(timestamps)
         )
-    
+
     return {
         "inputs": predict(rec, indx, size, pred),
         "truths": truths()
