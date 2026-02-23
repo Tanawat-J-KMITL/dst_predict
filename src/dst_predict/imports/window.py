@@ -63,12 +63,12 @@ def predict(rec, indx, size=64, pred=6):
         timestamps = slice(rolling (
             rec, "timestamp", indx_abs - size - pred, size + pred
         ), i, size)
-        return format_predict_data (
-            slice(rolling (
-                rec, "dst_nT", indx_abs - size - pred, size + pred
-            ), i, size),
-            encode_timestamps(timestamps)
-        )
+        return {
+            "dst_nT": slice(rolling (
+                    rec, "dst_nT", indx_abs - size - pred, size + pred
+                ), i, size),
+            "time_enc": encode_timestamps(timestamps),
+        }
     
     return np.array([ inputs(i) for i in range(0, pred) ])
 
@@ -78,14 +78,7 @@ def training(rec, indx: int, size=64, pred=6):
 
     _check_bounds("training", rec, indx, size + pred, pred)
 
-    def truths():
-        timestamps = rolling(rec, "timestamp", indx_abs + 1, pred)
-        return format_predict_data (
-            rolling(rec, "dst_nT", indx_abs + 1, pred),
-            encode_timestamps(timestamps)
-        )
-
     return {
         "inputs": predict(rec, indx, size, pred),
-        "truths": truths()
+        "truths": rolling(rec, "dst_nT", indx_abs + 1, pred)
     }
