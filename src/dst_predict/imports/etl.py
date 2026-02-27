@@ -54,7 +54,7 @@ def hader_parser(header_data, line):
         header_data["data_type"] = line.split("Data Type")[-1].rstrip("|").strip()
 
 
-def read_records(file):
+def read_records(file, read_all=False):
     records = []
     prev_timestamp = None
     section_finish = False
@@ -78,9 +78,9 @@ def read_records(file):
         # ----------------------
         # HEADER PARSING
         # ----------------------
-        
+    
         if data == "header":
-            if section_finish:
+            if not read_all and section_finish:
                 yield {
                     "header": header_data,
                     "data": np.array(records, dtype=object)
